@@ -1,0 +1,126 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  User,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  PhoneAuthProvider,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signInWithCredential
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
+
+interface AuthContextType {
+  currentUser: User | null;
+  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  sendPhoneVerification: (phoneNumber: string) => Promise<any>;
+  verifyPhoneCode: (verificationId: string, code: string) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  const signUp = async (email: string, password: string): Promise<void> => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already registered');
+      }
+      throw error;
+    }
+  };
+
+  const signIn = async (email: string, password: string): Promise<void> => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        throw new Error('Invalid email or password');
+      }
+      throw error;
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+    } catch (error: any) {
+      throw error;
+    }
+  };
+
+  const sendPhoneVerification = async (phoneNumber: string) => {
+    try {
+      if (!(window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            // reCAPTCHA solved
+          }
+        });
+      }
+      
+      return await signInWithPhoneNumber(
+        auth,
+        phoneNumber,
+        (window as any).recaptchaVerifier
+      );
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-phone-number') {
+        throw new Error('Invalid phone number format. Please use format: +1234567890');
+      }
+      throw error;
+    }
+  };
+
+  const verifyPhoneCode = async (verificationId: string, code: string): Promise<void> => {
+    try {
+      const credential = PhoneAuthProvider.credential(verificationId, code);
+      await signInWithCredential(auth, credential);
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-verification-code') {
+        throw new Error('Invalid verification code');
+      }
+      throw error;
+    }
+  };
+
+  const value: AuthContextType = {
+    currentUser,
+    signUp,
+    signIn,
+    logout,
+    sendPhoneVerification,
+    verifyPhoneCode
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};
