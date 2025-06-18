@@ -11,13 +11,13 @@ declare global {
 }
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB9fkZ1h0n65t7veCoJhNOtFLYwI3wJSmY",
-  authDomain: "userauthentication-33824.firebaseapp.com",
-  projectId: "userauthentication-33824",
-  storageBucket: "userauthentication-33824.firebasestorage.app",
-  messagingSenderId: "348061847452",
-  appId: "1:348061847452:web:7f6f454866659a03688259",
-  measurementId: "G-JSNT352TQ8"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
